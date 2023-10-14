@@ -30,3 +30,6 @@ The card game Kami implemented in Python
 - Indent with tabs, align with spaces--tabs only appear at beginning of a line of code
 - Two empty spaces between the declaration of types and functions
 - Keep functions short and plenty
+
+## Game Rules (per Board Game Arena)
+https://en.doc.boardgamearena.com/Gamehelpkami
