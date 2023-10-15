@@ -6,6 +6,7 @@ The card game Kami implemented in Python
 
 ## Bugs
 - Empress can be played at any time
+- Double points are not score when last two cards are duplicates
 - Game is always played if a player is dealt 5 or more soldier cards
 - Player starting each round is likely not accurrate with official rules
 
