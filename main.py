@@ -2,6 +2,7 @@ from enum import Enum
 import random
 import time
 import sys
+import unittest
 
 
 # Deck ##############################################################################
@@ -217,27 +218,51 @@ def get_player_turn_to_play_cards(player_index: int, player_hand: list[CardId], 
 
 
 # NOTE: Unused
-def can_player_play_card_id(player_index: int, card_id: CardId, player_hand: list, played_cards: list, offensive_player_index: int) -> bool:
+def can_player_play_card_id(player_index: int, card_id: CardId, player_hand: list, played_cards: list, offensive_player_index: int, to_play_cards: list[CardId]) -> bool:
 	if card_id == CardId.NONE:
 		return False
 	
 	if not (card_id in player_hand):
 		return False
-	
-	offensive_card_id = get_player_offensive_card_id(offensive_player_index, played_cards)
-	if card_id == offensive_card_id:
-		return True
 
-	match card_id:
-		case CardId.Empress:
-			if offensive_card_id in [CardId.SOLDIER, CardId.SPEARMAN]:
-				return False
-			elif not has_empress_been_played(played_cards) and offensive_card_id != CardId.NONE:
-				return False
-			else:
-				return False
-		case _:
-			return offensive_player_index == player_index
+	number_of_to_play_cards = len(to_play_cards)
+	if number_of_to_play_cards == 0:
+		# Defensive line
+
+		offensive_card_id = get_player_offensive_card_id(offensive_player_index, played_cards)
+
+		match card_id:
+			case CardId.EMPRESS:
+				if offensive_card_id in [CardId.NONE, CardId.SOLDIER, CardId.SPEARMAN]:
+					# Empress cannot be played on defensive line as first face down card in round.
+					# Empress cannot be played on defensive line against a soldier or spearman.
+					return False
+				else:
+					# Empress can be played on defensive line against all other cards.
+					return True
+			case _:
+				if card_id == offensive_card_id:
+					# All other cards can be played on defensive line against a matching card.
+					return True
+				elif offensive_card_id == CardId.NONE:
+					# All other cards can be played on defensive line as first face down card in round.
+					return True
+				else:
+					return False
+	elif number_of_to_play_cards == 1:
+		# Offensive line
+
+		match card_id:
+			case CardId.Empress:
+				# Empress can be played on offensive line if an empress has already been played.
+				# Empress can be played on offensive line if this player played an empress on the current defensive line.
+				return has_empress_been_played(played_cards) or CardId.Empress in to_play_cards
+			case _:
+				# All other cards can be played on offensive line.
+				return True
+	else:
+		print("can_player_play_card_id: Player %d with invalid number of to play cards: %d" % (player_index, number_of_to_play_cards), file=sys.stderr)
+		return False
 
 
 # Game Progression ##############################################################################
@@ -343,5 +368,19 @@ def has_empress_been_played(played_cards: list[list[CardId]]) -> bool:
 	return False
 
 
+# Tests ######################################################################
+def run_tests():
+	unittest.main()
+
+
+class TestKami(unittest.TestCase):
+	def test_cannot_play_empress_face_down_round_first_turn(self):
+		player_hand: list[CardId] = [CardId.EMPRESS]
+		played_cards: list[CardId] = [[], [], [], []]
+		to_play_cards: list[CardId] = []
+		self.assertFalse(can_player_play_card_id(0, CardId.EMPRESS, player_hand, played_cards, -1, to_play_cards))
+
+
 ##############################################################################
 play_game()
+#run_tests()

@@ -4,6 +4,9 @@ The card game Kami implemented in Python
 ## Usage
 `python main.py`
 
+## Running Tests
+`python -m unittest main.py`
+
 ## Bugs
 - Empress can be played at any time
 - Double points are not score when last two cards are duplicates
