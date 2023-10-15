@@ -5,7 +5,9 @@ The card game Kami implemented in Python
 `python main.py`
 
 ## Running Tests
-`python -m unittest main.py`
+`python -m unittest tests.py`
+or
+`python tests.py # good for running debugger`
 
 ## Bugs
 - Empress can be played at any time

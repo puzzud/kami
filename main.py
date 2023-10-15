@@ -2,7 +2,6 @@ from enum import Enum
 import random
 import time
 import sys
-import unittest
 
 
 # Deck ##############################################################################
@@ -217,7 +216,6 @@ def get_player_turn_to_play_cards(player_index: int, player_hand: list[CardId], 
 	return card_ids
 
 
-# NOTE: Unused
 def can_player_play_card_id(player_index: int, card_id: CardId, player_hand: list, played_cards: list, offensive_player_index: int, to_play_cards: list[CardId]) -> bool:
 	if card_id == CardId.NONE:
 		return False
@@ -253,10 +251,10 @@ def can_player_play_card_id(player_index: int, card_id: CardId, player_hand: lis
 		# Offensive line
 
 		match card_id:
-			case CardId.Empress:
+			case CardId.EMPRESS:
 				# Empress can be played on offensive line if an empress has already been played.
 				# Empress can be played on offensive line if this player played an empress on the current defensive line.
-				return has_empress_been_played(played_cards) or CardId.Empress in to_play_cards
+				return has_empress_been_played(played_cards) or CardId.EMPRESS in to_play_cards
 			case _:
 				# All other cards can be played on offensive line.
 				return True
@@ -368,19 +366,6 @@ def has_empress_been_played(played_cards: list[list[CardId]]) -> bool:
 	return False
 
 
-# Tests ######################################################################
-def run_tests():
-	unittest.main()
-
-
-class TestKami(unittest.TestCase):
-	def test_cannot_play_empress_face_down_round_first_turn(self):
-		player_hand: list[CardId] = [CardId.EMPRESS]
-		played_cards: list[CardId] = [[], [], [], []]
-		to_play_cards: list[CardId] = []
-		self.assertFalse(can_player_play_card_id(0, CardId.EMPRESS, player_hand, played_cards, -1, to_play_cards))
-
-
 ##############################################################################
-play_game()
-#run_tests()
+if __name__ == '__main__':
+	play_game()
