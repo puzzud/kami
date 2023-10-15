@@ -324,8 +324,9 @@ def play_game():
 					break
 			else:
 				print("Player %d passes" % (player_index))
-				player_index = get_next_turn_player_index(player_index, number_of_players)
-		
+
+			player_index = get_next_turn_player_index(player_index, number_of_players)
+
 		print_team_scores(team_scores)
 
 	winning_team_index = get_winning_team_index(team_scores)
