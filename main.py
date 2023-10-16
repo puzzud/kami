@@ -184,16 +184,17 @@ def get_player_trick_score(player_index: int, played_cards: list[list, CardId]) 
 # The 2nd card in the list is assumed to be the offensive card.
 # The 1st card is either a face down card or a defensive card.
 def get_player_turn_to_play_cards(player_index: int, player_hand: list[CardId], played_cards: list[list, CardId], offensive_player_index: int, player_team_indices: list[int]) -> list[CardId]:
-	card_ids: list[CardId] = []
-	
-	player_hand_copy = player_hand.copy()
+	to_play_cards: list[CardId] = []
+
+	can_play_cards = list(filter(lambda card_id: can_player_play_card_id(player_index, card_id, player_hand, played_cards, offensive_player_index, to_play_cards), player_hand))
+	if len(can_play_cards) == 0:
+		return to_play_cards
 
 	if player_index == offensive_player_index or offensive_player_index < 0:
 		# Request a card face down
 		# TODO: Use AI
-		face_down_card_id = random.choice(player_hand_copy)
-		player_hand_copy.remove(face_down_card_id)
-		card_ids.append(face_down_card_id)
+		face_down_card_id = random.choice(can_play_cards)
+		to_play_cards.append(face_down_card_id)
 	else:
 		# TODO: Should determine if the offensive card was played by a teammate,
 		# which strongly influences whether player should play a defensive card.
@@ -202,37 +203,55 @@ def get_player_turn_to_play_cards(player_index: int, player_hand: list[CardId], 
 
 		# Attempt to request to play a defensive card face up
 		offensive_card_id = get_player_offensive_card_id(offensive_player_index, played_cards)
-		if offensive_card_id in player_hand_copy:
-			player_hand_copy.remove(offensive_card_id)
-			card_ids.append(offensive_card_id)
+		defensive_card_id = offensive_card_id if offensive_card_id in can_play_cards else random.choice(can_play_cards)
+		to_play_cards.append(defensive_card_id)
 	
 	# If possible, request an offensive card face up
-	if len(card_ids) > 0:
+	if len(to_play_cards) > 0:
+		can_play_cards = list(filter(lambda card_id: can_player_play_card_id(player_index, card_id, player_hand, played_cards, offensive_player_index, to_play_cards), player_hand))
+		
 		# TODO: Use AI
-		offensive_card_id = random.choice(player_hand_copy)
-		player_hand_copy.remove(offensive_card_id)
-		card_ids.append(offensive_card_id)
+		offensive_card_id = random.choice(can_play_cards)
+		to_play_cards.append(offensive_card_id)
 
-	return card_ids
+	return to_play_cards
 
 
 def can_player_play_card_id(player_index: int, card_id: CardId, player_hand: list, played_cards: list, offensive_player_index: int, to_play_cards: list[CardId]) -> bool:
 	if card_id == CardId.NONE:
 		return False
 	
-	if not (card_id in player_hand):
+	# Consider player hand that has any "to play" cards removed to
+	# ensure player has enough cards of type to play
+	# (particularly good for double card plays).
+	adjusted_player_hand = player_hand.copy()
+	for c in to_play_cards:
+		if c in to_play_cards:
+			adjusted_player_hand.remove(c)
+	
+	if not (card_id in adjusted_player_hand):
 		return False
 
 	number_of_to_play_cards = len(to_play_cards)
 	if number_of_to_play_cards == 0:
 		# Defensive line
 
-		offensive_card_id = get_player_offensive_card_id(offensive_player_index, played_cards)
+		if player_index == offensive_player_index:
+			# Like saying the offensive card is not offensive against the offensive player.
+			offensive_card_id = CardId.NONE
+		else:
+			offensive_card_id = get_player_offensive_card_id(offensive_player_index, played_cards)
 
 		match card_id:
 			case CardId.EMPRESS:
-				if offensive_card_id in [CardId.NONE, CardId.SOLDIER, CardId.SPEARMAN]:
-					# Empress cannot be played on defensive line as first face down card in round.
+				if offensive_card_id == CardId.NONE:
+					if len(adjusted_player_hand) == 2 and adjusted_player_hand[0] == CardId.EMPRESS and adjusted_player_hand[1] == CardId.EMPRESS:
+						# Empress can be played on defensive line if the player's last two cards are empresses.
+						return True
+					else:
+						# Empress cannot be played on defensive line as first face down card in round.
+						return False
+				elif offensive_card_id in [CardId.SOLDIER, CardId.SPEARMAN]:
 					# Empress cannot be played on defensive line against a soldier or spearman.
 					return False
 				else:
@@ -252,9 +271,17 @@ def can_player_play_card_id(player_index: int, card_id: CardId, player_hand: lis
 
 		match card_id:
 			case CardId.EMPRESS:
-				# Empress can be played on offensive line if an empress has already been played.
-				# Empress can be played on offensive line if this player played an empress on the current defensive line.
-				return has_empress_been_played(played_cards) or CardId.EMPRESS in to_play_cards
+				if has_empress_been_played(played_cards):
+					# Empress can be played on offensive line if an empress has already been played.
+					return True
+				elif CardId.EMPRESS in to_play_cards:
+					# Empress can be played on offensive line if this player played an empress on the current defensive line.
+					return True
+				elif len(adjusted_player_hand) == 1:
+					# Empress can be played on offensive line if it is the last card in a player's hand.
+					return True
+				else:
+					return False
 			case _:
 				# All other cards can be played on offensive line.
 				return True
